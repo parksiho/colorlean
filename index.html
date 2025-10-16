@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>컬러풀 2D 러닝 게임</title>
 <style>
   body {
@@ -9,6 +10,13 @@
     font-family: 'Arial', sans-serif;
     background: linear-gradient(#87CEFA, #FFF);
     overflow: hidden;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 
   /* 홈 화면 */
@@ -28,17 +36,31 @@
 
   button {
     margin: 10px;
-    padding: 10px 20px;
-    font-size: 20px;
+    padding: 15px 25px;
+    font-size: 18px;
     border-radius: 10px;
     border: none;
     cursor: pointer;
     background-color: #ffcc00;
     transition: 0.2s;
+    min-height: 50px;
+    min-width: 120px;
+    touch-action: manipulation;
   }
 
-  button:hover {
+  button:hover, button:active {
     background-color: #ffa500;
+    transform: scale(0.95);
+  }
+
+  /* 모바일 터치 버튼 */
+  @media (max-width: 768px) {
+    button {
+      padding: 20px 30px;
+      font-size: 20px;
+      min-height: 60px;
+      min-width: 150px;
+    }
   }
 
   /* 게임 화면 */
@@ -79,6 +101,25 @@
     z-index: 5;
   }
 
+  /* 모바일에서 게임 요소 크기 조정 */
+  @media (max-width: 768px) {
+    #player {
+      width: 60px;
+      height: 60px;
+      left: 30px;
+    }
+    
+    .obstacle {
+      width: 50px;
+      height: 50px;
+    }
+    
+    .coin {
+      width: 25px;
+      height: 25px;
+    }
+  }
+
   /* 점수 & 코인 */
   #scoreBoard {
     position: absolute;
@@ -90,6 +131,45 @@
     background-color: rgba(255, 255, 255, 0.8);
     padding: 10px;
     border-radius: 5px;
+  }
+
+  /* 모바일 터치 컨트롤 */
+  #jumpButton {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: rgba(255, 204, 0, 0.8);
+    border: 3px solid #ffa500;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    z-index: 20;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  #jumpButton:active {
+    background-color: rgba(255, 165, 0, 0.9);
+    transform: scale(0.9);
+  }
+
+  /* 모바일에서만 점프 버튼 표시 */
+  @media (max-width: 768px) {
+    #jumpButton {
+      display: flex;
+    }
+    
+    #scoreBoard {
+      font-size: 16px;
+      padding: 8px;
+    }
   }
 </style>
 </head>
@@ -125,6 +205,7 @@
 <div id="game">
   <div id="player"></div>
   <div id="scoreBoard">점수: 0 | 코인: 0</div>
+  <div id="jumpButton" onclick="jumpPlayer()">점프</div>
   <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background-color: #8B4513; z-index: 1;"></div>
 </div>
 
@@ -208,11 +289,32 @@ function buyItem(item) {
   }
 }
 
+// 키보드 이벤트
 document.addEventListener('keydown', e => {
   if(e.code === 'Space' && !jump) {
     jump = true;
   }
 });
+
+// 터치 이벤트
+function jumpPlayer() {
+  if(!jump) {
+    jump = true;
+  }
+}
+
+// 화면 터치로도 점프 가능
+document.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if(!jump) {
+    jump = true;
+  }
+}, { passive: false });
+
+// 모바일에서 더블탭 방지
+document.addEventListener('touchend', e => {
+  e.preventDefault();
+}, { passive: false });
 
 function startGame() {
   score = 0;
@@ -228,7 +330,7 @@ function startGame() {
   
   // 플레이어 초기화
   player.style.bottom = '50px';
-  player.style.left = '50px';
+  player.style.left = window.innerWidth <= 768 ? '30px' : '50px';
   player.style.backgroundColor = selectedCharacter;
   player.style.display = 'block';
   
@@ -274,7 +376,9 @@ function gameLoop() {
     // 충돌 체크
     let playerLeft = parseInt(player.style.left);
     let playerBottom = parseInt(player.style.bottom);
-    if(left < playerLeft + 50 && left + 40 > playerLeft && playerBottom < 90) {
+    let playerWidth = window.innerWidth <= 768 ? 60 : 50;
+    let obstacleWidth = window.innerWidth <= 768 ? 50 : 40;
+    if(left < playerLeft + playerWidth && left + obstacleWidth > playerLeft && playerBottom < 90) {
       endGame();
     }
   });
@@ -293,7 +397,9 @@ function gameLoop() {
     let playerLeft = parseInt(player.style.left);
     let playerBottom = parseInt(player.style.bottom);
     let coinBottom = parseInt(c.style.bottom);
-    if(left < playerLeft + 50 && left + 20 > playerLeft && Math.abs(playerBottom - coinBottom) < 30) {
+    let playerWidth = window.innerWidth <= 768 ? 60 : 50;
+    let coinWidth = window.innerWidth <= 768 ? 25 : 20;
+    if(left < playerLeft + playerWidth && left + coinWidth > playerLeft && Math.abs(playerBottom - coinBottom) < 30) {
       coins += 1;
       totalCoins += 1;
       localStorage.setItem('totalCoins', totalCoins);
