@@ -46,11 +46,22 @@
     min-height: 50px;
     min-width: 120px;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 
   button:hover, button:active {
     background-color: #ffa500;
     transform: scale(0.95);
+  }
+
+  button:focus {
+    outline: none;
   }
 
   /* 모바일 터치 버튼 */
@@ -153,11 +164,21 @@
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 
   #jumpButton:active {
     background-color: rgba(255, 165, 0, 0.9);
     transform: scale(0.9);
+  }
+
+  #jumpButton:focus {
+    outline: none;
   }
 
   /* 모바일에서만 점프 버튼 표시 */
@@ -178,26 +199,26 @@
 <!-- 홈 화면 -->
 <div id="home" class="active">
   <h1>컬러풀 러닝 게임</h1>
-  <button onclick="startGame()">▶ PLAY</button>
-  <button onclick="showCharacterSelect()">캐릭터 선택</button>
-  <button onclick="showShop()">상점</button>
-  <button onclick="showOptions()">옵션</button>
+  <button onclick="startGame()" ontouchstart="startGame()">▶ PLAY</button>
+  <button onclick="showCharacterSelect()" ontouchstart="showCharacterSelect()">캐릭터 선택</button>
+  <button onclick="showShop()" ontouchstart="showShop()">상점</button>
+  <button onclick="showOptions()" ontouchstart="showOptions()">옵션</button>
   <p>최고 점수: <span id="highScore">0</span> | 코인: <span id="totalCoins">0</span></p>
 </div>
 
 <!-- 캐릭터 선택 -->
 <div id="characterSelect">
   <h2>캐릭터 선택</h2>
-  <button onclick="selectCharacter('red')">기본 캐릭터</button>
-  <button onclick="selectCharacter('blue')">블루 캐릭터 (해금 필요)</button>
-  <button onclick="backHome()">뒤로가기</button>
+  <button onclick="selectCharacter('red')" ontouchstart="selectCharacter('red')">기본 캐릭터</button>
+  <button onclick="selectCharacter('blue')" ontouchstart="selectCharacter('blue')">블루 캐릭터 (해금 필요)</button>
+  <button onclick="backHome()" ontouchstart="backHome()">뒤로가기</button>
 </div>
 
 <!-- 상점 -->
 <div id="shop">
   <h2>상점</h2>
-  <button onclick="buyItem('doubleScore')">더블 점수 (50코인)</button>
-  <button onclick="backHome()">뒤로가기</button>
+  <button onclick="buyItem('doubleScore')" ontouchstart="buyItem('doubleScore')">더블 점수 (50코인)</button>
+  <button onclick="backHome()" ontouchstart="backHome()">뒤로가기</button>
   <p>보유 코인: <span id="shopCoins">0</span></p>
 </div>
 
@@ -205,7 +226,7 @@
 <div id="game">
   <div id="player"></div>
   <div id="scoreBoard">점수: 0 | 코인: 0</div>
-  <div id="jumpButton" onclick="jumpPlayer()">점프</div>
+  <div id="jumpButton" onclick="jumpPlayer()" ontouchstart="jumpPlayer()">점프</div>
   <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background-color: #8B4513; z-index: 1;"></div>
 </div>
 
@@ -213,8 +234,8 @@
 <div id="gameOver">
   <h2>게임 오버</h2>
   <p>점수: <span id="finalScore">0</span></p>
-  <button onclick="startGame()">다시 시작</button>
-  <button onclick="backHome()">홈으로</button>
+  <button onclick="startGame()" ontouchstart="startGame()">다시 시작</button>
+  <button onclick="backHome()" ontouchstart="backHome()">홈으로</button>
 </div>
 
 <script>
@@ -303,16 +324,42 @@ function jumpPlayer() {
   }
 }
 
-// 화면 터치로도 점프 가능
-document.addEventListener('touchstart', e => {
+// 모든 버튼에 터치 이벤트 추가
+document.addEventListener('DOMContentLoaded', function() {
+  const buttons = document.querySelectorAll('button');
+  buttons.forEach(button => {
+    button.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.click();
+    }, { passive: false });
+  });
+  
+  // 점프 버튼에 추가 터치 이벤트
+  const jumpBtn = document.getElementById('jumpButton');
+  if(jumpBtn) {
+    jumpBtn.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      jumpPlayer();
+    }, { passive: false });
+  }
+});
+
+// 게임 화면에서만 화면 터치로 점프 가능
+gameDiv.addEventListener('touchstart', e => {
+  // 점프 버튼을 터치한 경우는 제외
+  if(e.target.id === 'jumpButton') {
+    return;
+  }
   e.preventDefault();
   if(!jump) {
     jump = true;
   }
 }, { passive: false });
 
-// 모바일에서 더블탭 방지
-document.addEventListener('touchend', e => {
+// 모바일에서 더블탭 방지 (게임 화면에서만)
+gameDiv.addEventListener('touchend', e => {
   e.preventDefault();
 }, { passive: false });
 
