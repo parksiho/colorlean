@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>컬러풀 2D 러닝 게임</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(#87CEFA, #FFF);
+    overflow: hidden;
+  }
+
+  /* 홈 화면 */
+  #home, #game, #shop, #characterSelect, #gameOver {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  #home.active, #game.active, #shop.active, #characterSelect.active, #gameOver.active {
+    display: flex;
+  }
+
+  button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background-color: #ffcc00;
+    transition: 0.2s;
+  }
+
+  button:hover {
+    background-color: #ffa500;
+  }
+
+  /* 게임 화면 */
+  #game {
+    background: linear-gradient(#87CEFA, #FFA);
+    overflow: hidden;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #player {
+    width: 50px;
+    height: 50px;
+    background-color: red;
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    border-radius: 10px;
+    z-index: 10;
+  }
+
+  .obstacle {
+    width: 40px;
+    height: 40px;
+    background-color: black;
+    position: absolute;
+    bottom: 50px;
+    z-index: 5;
+  }
+
+  .coin {
+    width: 20px;
+    height: 20px;
+    background-color: gold;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 5;
+  }
+
+  /* 점수 & 코인 */
+  #scoreBoard {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+    color: #333;
+    z-index: 15;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 홈 화면 -->
+<div id="home" class="active">
+  <h1>컬러풀 러닝 게임</h1>
+  <button onclick="startGame()">▶ PLAY</button>
+  <button onclick="showCharacterSelect()">캐릭터 선택</button>
+  <button onclick="showShop()">상점</button>
+  <button onclick="showOptions()">옵션</button>
+  <p>최고 점수: <span id="highScore">0</span> | 코인: <span id="totalCoins">0</span></p>
+</div>
+
+<!-- 캐릭터 선택 -->
+<div id="characterSelect">
+  <h2>캐릭터 선택</h2>
+  <button onclick="selectCharacter('red')">기본 캐릭터</button>
+  <button onclick="selectCharacter('blue')">블루 캐릭터 (해금 필요)</button>
+  <button onclick="backHome()">뒤로가기</button>
+</div>
+
+<!-- 상점 -->
+<div id="shop">
+  <h2>상점</h2>
+  <button onclick="buyItem('doubleScore')">더블 점수 (50코인)</button>
+  <button onclick="backHome()">뒤로가기</button>
+  <p>보유 코인: <span id="shopCoins">0</span></p>
+</div>
+
+<!-- 게임 화면 -->
+<div id="game">
+  <div id="player"></div>
+  <div id="scoreBoard">점수: 0 | 코인: 0</div>
+  <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background-color: #8B4513; z-index: 1;"></div>
+</div>
+
+<!-- 게임 오버 화면 -->
+<div id="gameOver">
+  <h2>게임 오버</h2>
+  <p>점수: <span id="finalScore">0</span></p>
+  <button onclick="startGame()">다시 시작</button>
+  <button onclick="backHome()">홈으로</button>
+</div>
+
+<script>
+let player = document.getElementById('player');
+let gameDiv = document.getElementById('game');
+let homeDiv = document.getElementById('home');
+let gameOverDiv = document.getElementById('gameOver');
+let scoreBoard = document.getElementById('scoreBoard');
+
+let score = 0;
+let coins = 0;
+let totalCoins = localStorage.getItem('totalCoins') ? parseInt(localStorage.getItem('totalCoins')) : 0;
+document.getElementById('totalCoins').innerText = totalCoins;
+document.getElementById('shopCoins').innerText = totalCoins;
+
+let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+document.getElementById('highScore').innerText = highScore;
+
+let gameInterval;
+let obstacles = [];
+let coinsArr = [];
+let jump = false;
+let jumpHeight = 0;
+let gravity = 2;
+
+let selectedCharacter = 'red';
+let itemEffects = {doubleScore: false};
+
+function showDiv(id) {
+  [homeDiv, gameDiv, gameOverDiv, document.getElementById('shop'), document.getElementById('characterSelect')].forEach(d => d.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function backHome() {
+  showDiv('home');
+}
+
+function showShop() {
+  showDiv('shop');
+  document.getElementById('shopCoins').innerText = totalCoins;
+}
+
+function showCharacterSelect() {
+  showDiv('characterSelect');
+}
+
+function showOptions() {
+  alert('옵션 기능은 준비 중입니다!');
+}
+
+function selectCharacter(color) {
+  if(color === 'blue' && totalCoins < 100) {
+    alert("코인이 부족합니다!");
+    return;
+  }
+  if(color === 'blue') totalCoins -= 100;
+  selectedCharacter = color;
+  localStorage.setItem('totalCoins', totalCoins);
+  document.getElementById('totalCoins').innerText = totalCoins;
+  alert(color + " 캐릭터 선택 완료!");
+}
+
+function buyItem(item) {
+  if(item === 'doubleScore' && totalCoins >= 50) {
+    itemEffects.doubleScore = true;
+    totalCoins -= 50;
+    localStorage.setItem('totalCoins', totalCoins);
+    document.getElementById('shopCoins').innerText = totalCoins;
+    alert("더블 점수 아이템 구매 완료!");
+  } else {
+    alert("코인이 부족합니다!");
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space' && !jump) {
+    jump = true;
+  }
+});
+
+function startGame() {
+  score = 0;
+  coins = 0;
+  jump = false;
+  jumpHeight = 0;
+  
+  // 기존 장애물과 코인 제거
+  obstacles.forEach(o => o.remove());
+  coinsArr.forEach(c => c.remove());
+  obstacles = [];
+  coinsArr = [];
+  
+  // 플레이어 초기화
+  player.style.bottom = '50px';
+  player.style.left = '50px';
+  player.style.backgroundColor = selectedCharacter;
+  player.style.display = 'block';
+  
+  // 게임 화면 표시
+  showDiv('game');
+  
+  // 점수판 업데이트
+  scoreBoard.innerText = `점수: ${score} | 코인: ${coins}`;
+  scoreBoard.style.display = 'block';
+
+  // 게임 루프 시작
+  if(gameInterval) clearInterval(gameInterval);
+  gameInterval = setInterval(gameLoop, 20);
+}
+
+function gameLoop() {
+  score += 1;
+  if(itemEffects.doubleScore) score += 1;
+
+  scoreBoard.innerText = `점수: ${score} | 코인: ${coins}`;
+
+  // 점프 처리
+  if(jump) {
+    jumpHeight += 10;
+    player.style.bottom = 50 + jumpHeight + 'px';
+    if(jumpHeight >= 100) jump = false;
+  } else if(jumpHeight > 0) {
+    jumpHeight -= gravity;
+    if(jumpHeight < 0) jumpHeight = 0;
+    player.style.bottom = 50 + jumpHeight + 'px';
+  }
+
+  // 장애물 생성
+  if(Math.random() < 0.02) createObstacle();
+  obstacles.forEach((ob, index) => {
+    let left = parseInt(ob.style.left) - 5;
+    ob.style.left = left + 'px';
+    if(left < -40) {
+      ob.remove();
+      obstacles.splice(index,1);
+    }
+
+    // 충돌 체크
+    let playerLeft = parseInt(player.style.left);
+    let playerBottom = parseInt(player.style.bottom);
+    if(left < playerLeft + 50 && left + 40 > playerLeft && playerBottom < 90) {
+      endGame();
+    }
+  });
+
+  // 코인 생성
+  if(Math.random() < 0.01) createCoin();
+  coinsArr.forEach((c, index) => {
+    let left = parseInt(c.style.left) - 5;
+    c.style.left = left + 'px';
+    if(left < -20) {
+      c.remove();
+      coinsArr.splice(index,1);
+    }
+
+    // 코인 획득
+    let playerLeft = parseInt(player.style.left);
+    let playerBottom = parseInt(player.style.bottom);
+    let coinBottom = parseInt(c.style.bottom);
+    if(left < playerLeft + 50 && left + 20 > playerLeft && Math.abs(playerBottom - coinBottom) < 30) {
+      coins += 1;
+      totalCoins += 1;
+      localStorage.setItem('totalCoins', totalCoins);
+      document.getElementById('totalCoins').innerText = totalCoins;
+      c.remove();
+      coinsArr.splice(index,1);
+    }
+  });
+}
+
+function createObstacle() {
+  let ob = document.createElement('div');
+  ob.classList.add('obstacle');
+  ob.style.left = window.innerWidth + 'px';
+  ob.style.bottom = '50px';
+  ob.style.display = 'block';
+  gameDiv.appendChild(ob);
+  obstacles.push(ob);
+}
+
+function createCoin() {
+  let c = document.createElement('div');
+  c.classList.add('coin');
+  c.style.left = window.innerWidth + 'px';
+  c.style.bottom = 70 + Math.random()*50 + 'px';
+  c.style.display = 'block';
+  gameDiv.appendChild(c);
+  coinsArr.push(c);
+}
+
+function endGame() {
+  clearInterval(gameInterval);
+  if(score > highScore) {
+    highScore = score;
+    localStorage.setItem('highScore', highScore);
+    document.getElementById('highScore').innerText = highScore;
+  }
+  document.getElementById('finalScore').innerText = score;
+  showDiv('gameOver');
+}
+</script>
+
+</body>
+</html>
