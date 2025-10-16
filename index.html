@@ -81,6 +81,7 @@
     position: relative;
     width: 100vw;
     height: 100vh;
+    height: calc(100vh - env(safe-area-inset-bottom));
   }
 
   #player {
@@ -191,6 +192,27 @@
       font-size: 16px;
       padding: 8px;
     }
+    
+    /* 모바일에서 게임 화면 높이 조정 */
+    #game {
+      height: calc(100vh - 20px);
+      padding-bottom: 20px;
+    }
+    
+    /* 모바일에서 바닥 영역 조정 */
+    #gameFloor {
+      height: 40px !important;
+      bottom: 0 !important;
+    }
+    
+    /* 모바일에서 플레이어와 장애물 위치 조정 */
+    #player {
+      bottom: 40px;
+    }
+    
+    .obstacle {
+      bottom: 40px;
+    }
   }
 </style>
 </head>
@@ -227,7 +249,7 @@
   <div id="player"></div>
   <div id="scoreBoard">점수: 0 | 코인: 0</div>
   <div id="jumpButton" onclick="jumpPlayer()" ontouchstart="jumpPlayer()">점프</div>
-  <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background-color: #8B4513; z-index: 1;"></div>
+  <div id="gameFloor" style="position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background-color: #8B4513; z-index: 1;"></div>
 </div>
 
 <!-- 게임 오버 화면 -->
@@ -376,8 +398,10 @@ function startGame() {
   coinsArr = [];
   
   // 플레이어 초기화
-  player.style.bottom = '50px';
-  player.style.left = window.innerWidth <= 768 ? '30px' : '50px';
+  let isMobile = window.innerWidth <= 768;
+  let floorHeight = isMobile ? 40 : 50;
+  player.style.bottom = floorHeight + 'px';
+  player.style.left = isMobile ? '30px' : '50px';
   player.style.backgroundColor = selectedCharacter;
   player.style.display = 'block';
   
@@ -425,7 +449,8 @@ function gameLoop() {
     let playerBottom = parseInt(player.style.bottom);
     let playerWidth = window.innerWidth <= 768 ? 60 : 50;
     let obstacleWidth = window.innerWidth <= 768 ? 50 : 40;
-    if(left < playerLeft + playerWidth && left + obstacleWidth > playerLeft && playerBottom < 90) {
+    let floorHeight = window.innerWidth <= 768 ? 40 : 50;
+    if(left < playerLeft + playerWidth && left + obstacleWidth > playerLeft && playerBottom < floorHeight + 40) {
       endGame();
     }
   });
@@ -461,7 +486,8 @@ function createObstacle() {
   let ob = document.createElement('div');
   ob.classList.add('obstacle');
   ob.style.left = window.innerWidth + 'px';
-  ob.style.bottom = '50px';
+  let isMobile = window.innerWidth <= 768;
+  ob.style.bottom = (isMobile ? 40 : 50) + 'px';
   ob.style.display = 'block';
   gameDiv.appendChild(ob);
   obstacles.push(ob);
@@ -471,7 +497,9 @@ function createCoin() {
   let c = document.createElement('div');
   c.classList.add('coin');
   c.style.left = window.innerWidth + 'px';
-  c.style.bottom = 70 + Math.random()*50 + 'px';
+  let isMobile = window.innerWidth <= 768;
+  let floorHeight = isMobile ? 40 : 50;
+  c.style.bottom = (floorHeight + 20 + Math.random()*50) + 'px';
   c.style.display = 'block';
   gameDiv.appendChild(c);
   coinsArr.push(c);
